@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: home-delivery-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: home-delivery
+    volumes:
+      - mongo_data:/data/db
+
+  server:
+    build:
+      context: ./server
+    container_name: home-delivery-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/home-delivery
+      JWT_SECRET: change-me-in-production
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost:5173
+      MOCK_PAYMENTS: "true"
+    depends_on:
+      - mongo
+
+  client:
+    build:
+      context: ./client
+    container_name: home-delivery-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+      VITE_SOCKET_URL: http://localhost:5000
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:
